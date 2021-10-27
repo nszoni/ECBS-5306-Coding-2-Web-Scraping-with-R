@@ -1,6 +1,7 @@
 -   [Web scraping with R](#web-scraping-with-r)
 -   [Pre requirements:](#pre-requirements)
 -   [Topics:](#topics)
+-   [Assignments](#assignments)
 -   [Schedule](#schedule)
 -   [Week 1](#week-1)
 -   [Contact](#contact)
@@ -29,6 +30,13 @@ Topics:
 -   GET, POST, ad header and data to requests
 -   Selenium
 -   Multi threading with R and python
+
+Assignments
+===========
+
+-   Scrape news site(25%)
+-   Work with api(25%)
+-   Final assignments(50%)
 
 Schedule
 ========
