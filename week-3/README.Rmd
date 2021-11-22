@@ -1,0 +1,199 @@
+
+---
+title: "Web scraping week 3"
+output:
+  md_document:
+    toc: true
+    variant: markdown_github
+  output_file: README.md
+---
+
+```{md, echo=F, include=F, eval=F}
+
+<details>
+  <summary>Summary Goes Here</summary>
+  ...this is hidden, collapsable content...
+</details>
+  
+  
+
+  
+  
+```
+
+```{r}
+
+library(rvest)
+library(data.table)
+library(jsonlite)
+library(httr)
+
+```
+
+# Jsonlite
+```{r}
+
+t_list <- fromJSON('{"first_json": "hello ceu", "year":2021, "class":"BA"} ')
+
+# with nested dfs use , flatten = T
+
+toJSON(t_list)
+
+toJSON(t_list, auto_unbox = T)
+toJSON(t_list, auto_unbox = T, pretty = T)
+
+
+```
+
+
+# Json in html document imdb
+```{r}
+t <- read_html('https://www.imdb.com/title/tt4154796/')
+
+# get the json of it. 
+json_data <- 
+  fromJSON(
+    t %>%
+      html_nodes(xpath = "//script[@type='application/ld+json']")%>%
+      html_text()
+  )
+
+
+json_2_data <- 
+  fromJSON(
+    t %>%
+      html_nodes(xpath = "//script[@id='__NEXT_DATA__']")%>%
+      html_text()
+  )
+
+# toJSON(json_data, pretty = T, auto_unbox = T)
+# toJSON(json_2_data, pretty = T, auto_unbox = T)
+
+
+
+```
+
+
+
+
+# Json in html document payscale
+
+```{r}
+t <- read_html('https://www.payscale.com/research/US/Job=Product_Manager%2C_Software/Salary')
+td  <- fromJSON(t %>%
+                       html_nodes(xpath = "//script[@type='application/ld+json']")%>%
+                       html_text()
+)
+
+td2  <- fromJSON(t %>%
+                        html_nodes(xpath = "//script[@type='application/json']")%>%
+                        html_text()
+)
+
+# toJSON(td, pretty = T, auto_unbox = T)
+# toJSON(td2, pretty = T, auto_unbox = T)
+
+# http://jsonviewer.stack.hu/
+
+```
+
+
+# GET & POST
+```{r}
+# https://github.com/daroczig/CEU-R-mastering
+
+# https://exchangerate.host/#/#our-services
+
+# https://www.youtube.com/watch?v=UObINRj2EGY
+
+
+url <- 'https://api.exchangerate.host/convert?from=USD&to=EUR'
+data <- fromJSON(url)
+print(data)
+
+t <- GET('https://api.exchangerate.host/convert', query=list(from="USD", to="EUR"))
+
+
+
+t <- fromJSON(content(t, "text"))
+
+t <- GET('https://api.exchangerate.host/convert', query=list(from="USD", to="EUR"), verbose(info = T))
+
+
+```
+
+# Task exchange rate
+https://exchangerate.host/#/#our-services
+Write a function which will return exchange rates, inputs: `start_date`, `end_date`, `base`, `to`. Check Time-Series endpoint
+```{r, echo=FALSE}
+
+# 
+
+start_date <- '2021-10-01'
+end_date <- Sys.Date()
+base <- 'USD'
+to <- 'HUF'
+
+
+response <- GET(
+    'https://api.exchangerate.host/timeseries',
+    query = list(
+      start_date = start_date,
+      end_date = end_date,
+      base=base,
+      symbols=to
+    )
+  )
+
+df <- fromJSON(content(response, "text"))
+
+#data.frame('date'= names(df$rates), 'value'= as.numeric(unlist(df$rates)))
+
+
+
+exchange_currency <- function(start_date, end_date, base, to) {
+  
+  response <- GET(
+      'https://api.exchangerate.host/timeseries',
+      query = list(
+        start_date = start_date,
+        end_date = end_date,
+        base=base,
+        symbols=to
+      )
+    )
+  
+  df <- fromJSON(content(response, "text"))
+  
+  
+  return(data.frame('date'= names(df$rates), 'value'= as.numeric(unlist(df$rates))))
+
+}
+```
+
+
+```{r}
+df <- exchange_currency(start_date = Sys.Date() -30 , end_date = Sys.Date(), base = 'USD', to = "HUF")
+head(df)
+```
+
+
+# Nasdaq data
+https://www.nasdaq.com/market-activity/stocks/screener
+```{r}
+
+t <- fromJSON('https://api.nasdaq.com/api/screener/stocks?tableonly=true&limit=25&offset=150')
+t$data$table$rows[1:5]
+
+
+```
+
+
+# Task forbes
+Find the json when you load this page: https://www.forbes.com/lists/global2000/
+```{r}
+
+```
+
+
+

@@ -4,6 +4,9 @@
 -   [Assignments](#assignments)
 -   [Schedule](#schedule)
 -   [Week 1](#week-1)
+-   [Week 2](#week-2)
+-   [Week 3](#week-3)
+-   [Week 4](#week-4)
 -   [Contact](#contact)
 
 In this repository you will find the code of the "Coding 2: Web Scraping with R" course in the 2020/2021 Fall term, part of the MSc in Business Analytics at CEU.
@@ -51,6 +54,34 @@ Week 1
 -   Rvest
 -   HTML structure
 -   Object selector with css [SelectorGadget](https://chrome.google.com/webstore/detail/selectorgadget/mhjhnkcfbdhnjickkkdbjoemdmbfginb)
+
+Week 2
+======
+
+-   Processing html documents with `rvest`
+-   [Economist scraper](week-2/README.md#economist-scraper)
+-   [Yachtworld scraper](week-2/README.md#yachtworld-scraper)
+-   [Tasks : ultimatespecs scraper](week-2/README.md#tasks-ultimatespecs-scraper)
+
+Week 3
+======
+
+-   Processing Json objects
+-   [Jsonlite](week-3/README.md#jsonlite)
+-   [Json in html document imdb](week-3/README.md#json-in-html-document-imdb)
+-   [Json in html document payscale](week-3/README.md#json-in-html-document-payscale)
+-   [GET](week-3/README.md#get-post)
+-   [Task exchange rate](week-3/README.md#task-exchange-rate)
+-   [Nasdaq data](week-3/README.md#nasdaq-data)
+
+Week 4
+======
+
+-   Working with api
+-   [Coingecko api](week-4/README.md#coingecko-api)
+-   [Tradingview](week-4/README.md#tradingview)
+-   [Eu fundings](week-4/README.md#eu-fundings)
+-   [Task forbes](week-4/README.md#task-forbes)
 
 Contact
 =======
