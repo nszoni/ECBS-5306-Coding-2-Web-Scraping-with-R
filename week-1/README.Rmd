@@ -1,0 +1,189 @@
+
+---
+title: "Web scraping week 1"
+output:
+  md_document:
+    toc: true
+    variant: markdown_github
+  output_file: README.md
+---
+
+```{md, echo=F, include=F, eval=F}
+
+<details>
+  <summary>Summary Goes Here</summary>
+  ...this is hidden, collapsable content...
+</details>
+  
+  
+```
+
+# Functions
+
+```{r}
+welcome <- function(name) {
+  return(paste0('Warm welcome ', name))
+}
+
+welcome(name = 'Ceu')
+
+```
+
+**Task**<br>
+Create a function called `multi` which will take argument `a` and `b` and return with the `a * b - b`
+```{r, echo=F}
+multi <- function(a, b) {
+  return((a*b)-b)
+}
+```
+
+```{r}
+multi(2,5)
+```
+
+**Task**<br>
+Create a function named `bmi_calc` which will have two inputs `weight`(kg) and `height`(cm) and calculate the BMI index `weight/height(meter)^2`. Check your result [here](https://www.nhlbi.nih.gov/health/educational/lose_wt/BMI/bmicalc.htm)
+
+```{r, echo=F}
+bmi_calc <- function(weight, height ) {
+  return(weight /((height/100)^2) )
+}
+
+```
+
+
+```{r}
+bmi_calc(weight = 75, height = 175)
+```
+
+
+
+
+# Loops
+
+```{r}
+for (i in 1:10) {
+  print(i)
+}
+
+j <-1
+while (j<10) {
+  t_url <- paste0('https://baseurl.com/page', j)
+  print(t_url)
+  j <- j+1
+}
+
+
+```
+
+**Task**<br>
+Reproduce the following printing with a for loop. (Use builtin vector called `letters`)
+```{r, echo=FALSE}
+for (i in 1:length(letters)) {
+  print(paste0('The ', i, '. letter is ', letters[i]))
+}
+
+
+```
+
+
+
+Create a function which will return the square of the input number.
+
+```{r, echo=FALSE}
+my_square <- function(x) {
+  return(x^2)
+}
+
+```
+
+```{r}
+my_square(11)
+```
+
+# Sapply, lapply
+
+Sapply and lapply takes two element, first a list and second a function<br>
+
+
+Sapply returns with a vector
+```{r}
+sapply(1:10, my_square)
+```
+
+
+Lapply returns with a list
+```{r}
+lapply(1:10, my_square)
+```
+
+
+```{r}
+lapply(1:10, function(x){x^3})
+```
+
+unlist will flat the list into a vector
+```{r}
+unlist(lapply(1:10, function(x){x^3}))
+
+```
+
+
+# HTML structure
+
+* [elements](https://developer.mozilla.org/en-US/docs/Web/HTML/Element)
+* [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div)
+* [id](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id)
+
+Load any site, press F12<br>
+In the console you can select elements with `document.querySelector('')`. <br>
+You can get the text of any div, element or id with `innerText` attribute `document.querySelector('h1').innerText`. <br>
+You can also overwrite the text of the selected element `document.querySelector('h1').innerText=='hello'` It will change the first h1 text to hello. <br>
+
+Try out with elements, id, and div.
+
+
+
+**Task**<br>
+Change two element on [this](https://www.guinnessworldrecords.com/world-records/most-lasso-texas-skips-in-one-minute) site
+
+* who should contain your name
+* where should contain your country
+* take a screenshoot
+
+
+`div` use `.` <br>
+`id` use `#` <br>
+`tag` use just the name of the tag.
+
+
+
+
+# Rvest
+
+Install and load the rvest library
+```{r}
+#install.packages("rvest")
+library(rvest)
+# load the index.html page
+t <- read_html('index.html')
+
+# tags
+t %>% html_node('h1') %>% html_text()
+t %>% html_nodes('h1') %>% html_text()
+
+t %>% html_node('.demo-class') %>% html_text()
+
+t %>% html_nodes('#select-with-id') %>% html_text()
+
+```
+
+
+```{r}
+t <- read_html('https://www.boats.com/boats/prestige/420-8040261/')
+t %>% html_nodes('#specifications .oem-page__title') %>% html_text()
+t %>% html_nodes('.description-list__term') %>% html_text()
+t %>% html_nodes('.description-list__description') %>% html_text()
+
+```
+
