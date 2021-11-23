@@ -1,0 +1,194 @@
+
+---
+title: "Web scraping week 4"
+output:
+  md_document:
+    toc: true
+    variant: markdown_github
+  output_file: README.md
+---
+
+```{md, echo=F, include=F, eval=F}
+
+<details>
+  <summary>Summary Goes Here</summary>
+  ...this is hidden, collapsable content...
+</details>
+  
+  
+
+  
+  
+```
+
+```{r}
+
+library(rvest)
+library(data.table)
+library(jsonlite)
+library(httr)
+
+```
+
+# Coingecko api
+```{r, echo=FALSE}
+
+get_all_data <- function() {
+
+  headers = c(
+    `authority` = 'web-api.coinmarketcap.com',
+    `accept` = 'application/json, text/plain, */*',
+    `user-agent` = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.89 Safari/537.36',
+    `origin` = 'https://coinmarketcap.com',
+    `sec-fetch-site` = 'same-site',
+    `sec-fetch-mode` = 'cors',
+    `sec-fetch-dest` = 'empty',
+    `referer` = 'https://coinmarketcap.com/',
+    `accept-language` = 'hu-HU,hu;q=0.9,en-US;q=0.8,en;q=0.7'
+  )
+
+  params = list(
+    `convert` = 'USD',
+    `cryptocurrency_type` = 'all',
+    `limit` = '5000',
+    `sort` = 'market_cap',
+    `sort_dir` = 'desc',
+    `start` = '1'
+  )
+
+  res <- httr::GET(url = 'https://web-api.coinmarketcap.com/v1/cryptocurrency/listings/latest', httr::add_headers(.headers=headers), query = params)
+
+  adat <- fromJSON(content(res, 'text'))
+  adat <- adat$data
+  return(data.table(adat))
+}
+
+
+
+curl -X 'GET' \
+  'https://api.coingecko.com/api/v3/coins/list?include_platform=false' \
+  -H 'accept: application/json'
+
+https://api.coingecko.com/api/v3/coins/list?include_platform=false
+
+
+```
+
+
+```{r}
+head(get_all_data())
+```
+
+
+# Tradingview
+```{r, echo=FALSE}
+trd <- function(json_string) {
+  headers = c(
+    `authority` = 'scanner.tradingview.com',
+    `accept` = 'text/plain, */*; q=0.01',
+    `origin` = 'https://www.tradingview.com',
+    `user-agent` = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36',
+    `content-type` = 'application/x-www-form-urlencoded; charset=UTF-8',
+    `sec-fetch-site` = 'same-site',
+    `sec-fetch-mode` = 'cors',
+    `referer` = 'https://www.tradingview.com/',
+    `accept-encoding` = 'gzip, deflate, br',
+    `accept-language` = 'hu-HU,hu;q=0.9,en-US;q=0.8,en;q=0.7'
+  )
+
+  res <- httr::POST(url = 'https://scanner.tradingview.com/america/scan', httr::add_headers(.headers=headers), body = json_string)
+
+  t <- fromJSON(content(res, 'text'))
+  df_data <-
+    rbindlist(lapply(t$data$d, function(x){
+      data.frame(t(data.frame(x)), stringsAsFactors = F)
+    }))
+
+  names(df_data) <-  fromJSON(json_string)$columns
+  final_data <- cbind( data.table('exchange' = sapply(strsplit(t$data$s, ':'), '[[', 1)),  df_data)
+  return(final_data)
+}
+
+
+
+```
+
+
+```{r}
+head(trd('{"filter":[{"left":"market_cap_basic","operation":"nempty"},{"left":"type","operation":"in_range","right":["stock","dr","fund"]},{"left":"subtype","operation":"in_range","right":["common","","etf","unit","mutual","money","reit","trust"]},{"left":"exchange","operation":"in_range","right":["AMEX","NASDAQ","NYSE"]}],"options":{"lang":"en"},"symbols":{"query":{"types":[]},"tickers":[]},"columns":["logoid","name","close","change","change_abs","Recommend.All","volume","market_cap_basic","price_earnings_ttm","earnings_per_share_basic_ttm","number_of_employees","industry","sector","SMA50","SMA100","SMA200","RSI","Perf.Y","Perf.3M","Perf.6M","Perf.1M","Perf.W","High.3M","High.6M","price_52_week_high","description","name","type","subtype","update_mode","pricescale","minmov","fractional","minmove2","SMA50","close","SMA100","SMA200","RSI","RSI[1]"],"sort":{"sortBy":"market_cap_basic","sortOrder":"desc"},"range":[0,100]}'))
+```
+
+
+
+# Eu fundings
+
+```{r, echo=FALSE}
+
+
+
+my_b <- list("filter" = toJSON( list("where"=list("fejlesztesi_program_nev"="Széchenyi 2020"),"skip"="0","limit"=200000,"order"="konstrukcio_kod, palyazo_neve ASC" ),auto_unbox = T) )
+
+t<- POST('https://pghrest.fair.gov.hu/api/tamogatott_proj_kereso/find2',  body = my_b, encode = 'json',  verbose(info=T))
+my_data<- fromJSON(content(t, 'text'))
+
+
+```
+
+```{r}
+
+# POST demo
+# eu fundings demo
+# open the site: https://www.palyazat.gov.hu/tamogatott_projektkereso
+# click to next page, find the data source 
+# show with terminal
+
+head(my_data)
+
+```
+
+
+
+# Task forbes
+Find the json when you load this page: https://www.forbes.com/lists/global2000/
+```{r, echo=FALSE}
+# https://www.forbes.com/forbesapi/org/global2000/2021/position/true.json?limit=2000
+df <- GET('https://www.forbes.com/forbesapi/org/global2000/2021/position/true.json?limit=2000')
+
+content(df, 'text')
+
+
+```
+
+```{r, echo=F}
+
+require(httr)
+
+headers = c(
+  `authority` = 'www.forbes.com',
+  `sec-ch-ua` = '"Google Chrome";v="95", "Chromium";v="95", ";Not A Brand";v="99"',
+  `accept` = 'application/json, text/plain, */*',
+  `sec-ch-ua-mobile` = '?0',
+  `user-agent` = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36',
+  `sec-ch-ua-platform` = '"Linux"',
+  `sec-fetch-site` = 'same-origin',
+  `sec-fetch-mode` = 'cors',
+  `sec-fetch-dest` = 'empty',
+  `referer` = 'https://www.forbes.com/lists/global2000/',
+  `accept-language` = 'hu-HU,hu;q=0.9,en-US;q=0.8,en;q=0.7',
+  `cookie` = 'notice_gdpr_prefs=0,1,2:1a8b5228dd7ff0717196863a5d28ce6c; cmapi_cookie_privacy=permit 1,2,3; cmapi_gtm_bl=; notice_preferences=2:1a8b5228dd7ff0717196863a5d28ce6c; client_id=e31706419d0bba43c2c784b83672ddb085a; _ga=GA1.2.1755568466.1637057364; cX_P=kw1xoq75ac9ymtg2; __pat=-18000000; _cb_ls=1; _cb=B7DDABP9iMDC3H4Ms; __gads=ID=0f3668f6ebbfcba4:T=1637057372:S=ALNI_MYgWFTBpbbmsBn4tXF-qViwObkRBA; __tbc=%7Bjzx%7DIFcj-ZhxuNCMjI4-mDfH1K4mlQOrUz2hCX4jlQY7k-lnDq3ng9CQcYT2d8O4wYMGHuKg4VF3beK1-oYXGOd4SdxPZeYnwtDXGGxE92kmcbg; cto_bundle=toCjQ19xOUROQUd6MkclMkJSeDQ1OEElMkZmSmxZMENpZlZweWtIVEZKNTA5QUt3akJ0UVJybHFzaHg2ektCYUdudXdMNU92SE5ia3ByWE9GUlo2cmw1NGJvZjNMWW1WMTR6YW45M2V3WGVVSk1zTmRzOE53M3dXVjM3bFQzS20lMkJkSUhVWUVYRWlXRXo0cEtscE5tN0F4bGZjMiUyRlVPdyUzRCUzRA; _pnvl=false; pushly.user_puuid=k8OQb7UawY74wA7Gd1585C7CCvbWMHtd; _pndnt=; _pnxd=e31706419d0bba43c2c784b83672ddb085a; _pnss=blocked; global_ad_params=%7B%7D; __qca=P0-1226922071-1637057978305; gaWelcomPageTracked=true; aasd=1%7C1637573365088; notice_behavior=expressed,eu; __aaxsc=1; __adblocker=true; AMP_TOKEN=%24NOT_FOUND; rbzid=Pzhz/+BbF0Q6qpWepZhTN4LnQidGqmliKtWOk1+ZjZKOdGTvD9sZGIjbx0CEjYk2ncd2J5fLTJSS8t+wzDiTi7AybHzcBxAXehCqiBexZ34CziZJ1zdNInEFasm/iLr3tzrChczpX5zdRjB4xzHHavGnQfsMjF0S5suBQHS0Ux0V++Xbd2R00yoYj9DP6YJrDJDSo2YuH+Wix5cKg2y5D8RI7ZBr2/WqwBA3LTav7hT567uBxryfKIj3UlJlQaSt; rbzsessionid=b83c632e818c7bf4017af4f814689b72; _gid=GA1.2.1483220130.1637573366; _dc_gtm_UA-5883199-3=1; _gat_UA-5883199-3=1; _gat_abp=1; __pnahc=127; __pvi=%7B%22id%22%3A%22v-kwagwfxmauuxv842%22%2C%22domain%22%3A%22.forbes.com%22%2C%22time%22%3A1637573366985%7D; xbc=%7Bjzx%7DUAdrxxGzqngwwHUXrKX7c4Qid4Z3_rJqEWLaIer0ttw0symoU3vlVwGN8jwL6p_0hLnxQOwrJjxYJYc5rNnADJY0G6aXvgiPHdqj-I5dE45bBYioErybBAxu9SA9eRZYC3p8rPWkZ5unC90rPGVEQXqk7SsWWjtomAQgHtbgoBL39V5GGzbI-KzMYThH-xyQLKU-cEwAkPo9rDjuKh-elzhs7ORKz993oWVytglx8nlC8dBPckPvuCrD1C2Ts30qUzo7OKy_nOE2ygwccJudtxhLDD4jIS48NsA_-zWdrbgNSqJdrZHp3LIUUj7I5hGQipd1XFRhhiVU340D7yDmBagSRyElkTznF0IrHhiPkqFw7FUge0EIuBVibw_EIBEdEArxoV3afPHTpxzJ8N0J5CkpGLNtdr7l7-RahAEYxRn8NLl569HSNsEW0mVawUhIeoBHu7HPT-4pT0GxvoICI9ObJNJ2V6Lbjlu_V7080U9SN7HaxXsvTmD-MzJVTPpTY1oxupLKjTHv0eSDYEpNlbsWkCXXmz_oQElnFJLwtbmqXHsjp8y85GVHXTDkX2k9SChHzg1hBFL3TXpr0mT3x9azmFDNNdTAaPSW3riZvFfTnHSs7F7JZit41GFnYiqG7WqscjXqUOECZhttLQREPra5uSkM4S2NlK9PfPfB6l4-70tr2PuMQ4IG2s9bsu3qII5C37OpKGzZ41g-TnJH8XSHIAEPQAdW5WBEjLU6iGAgpY8SzeKFRN4ijEWJJzAdjQv8abXJpjb2VD-8qU0QzgEWco-px8OLhcrkqPMwH-aSNiLX-e9IJPnVLg7jmUbxRcCIVtJvIQYBxUuSO8a57RJw3jM4xU98DalCLA7PypHDqqn5WiGCDwSu7AgpVvbmCl7mu6VHzNyTf4DnhBrS68zEp_520olUb1Iy_LMNdfC19Kkm0wG06qaSRhamrMFBDhxAg2CJhJSwJch1jlIMhA; cX_S=kwagwgsxmjom3if3; _chartbeat2=.1571989219749.1637573372384.0000000001000001.CPKctADYxVHvD7vTzACyVllQCR42zf.1; _cb_svref=null; QSI_HistorySession=https%3A%2F%2Fwww.forbes.com%2Flists%2Fglobal2000%2F%2344ca83565ac0~1637573372780; _chartbeat4=t=DKDza6D6hcJaDIuVHd3hR4KDnmbwj&E=0&x=0&c=0.15&y=17681&w=758; mnet_session_depth=2%7C1637573364053'
+)
+
+params = list(
+  `limit` = '2000'
+)
+
+res <- httr::GET(url = 'https://www.forbes.com/forbesapi/org/global2000/2021/position/true.json', httr::add_headers(.headers=headers), query = params)
+
+df <- fromJSON(content(res, 'text'))
+
+head(df$organizationList$organizationsLists)
+```
+
+
+
+
