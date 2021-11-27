@@ -1,0 +1,182 @@
+---
+title: "C2 - Assignment 2."
+author: "Son Nam Nguyen"
+date: "11/27/2021"
+output:
+  prettydoc::html_pretty:
+  toc: true
+  theme: architect
+  highlight: github
+---
+
+```{r setup, include=FALSE}
+
+if (!require(pacman)){
+  install.packages("pacman")
+}
+
+pacman::p_load(rvest, httr, tidyverse, jsonlite, data.table, tidyr, stringr, patchwork, kableExtra)
+
+```
+
+## Access API
+
+I have decided to scrape the TendersGuru public API, which contains procurement data
+of the countries situated in the Pannonian Basin along with Spain. Please, find the
+documentation on the API [here](https://tenders.guru/hu/api).
+
+```{r, message=F, warning=F}
+#send GET request
+res <- httr::GET(url = 'https://tenders.guru/api/hu/tenders')
+
+#retrive JSON response and flatten out the object
+t <- fromJSON(content(res, 'text'), flatten = T)
+
+#convert it to dataframe
+df <- data.frame(t$data)
+
+df %>%
+  select(-c("description", "awarded")) %>% #drop long text column for clarity
+  head(5) %>% 
+  kbl() %>%
+  kable_styling("striped") %>%
+  scroll_box(width = "100%")
+
+```
+
+</br>
+
+## Processing
+
+What we can observe from the original data transformed from the JSON object,
+is that there are nested dataframes in in the `awarded` column of the original dataset.
+Beyond that, there are also further nested dataframes inside the dataframes of the `awarded` column
+called as `suppliers` containing the slug of tender suppliers.
+
+```{r}
+
+#lets extract the list of dataframes from each row and bind them together with rbindlist
+awarded <-
+  rbindlist(lapply(t$data$awarded, function(x){
+    data.frame(x, stringsAsFactors = F)
+  }), fill=T)
+
+#we can unnest the resulted dataframe by supplier ids
+awarded <- unnest(awarded, suppliers)
+
+#Before we move onto the data visualization,
+#we have to make the necessary datatype transformations. 
+
+#fixing datatypes of the purchaser
+df <- df %>% mutate(date = as.POSIXct(date), #convert char to date
+                    awarded_value_m = as.numeric(awarded_value)/1000000, #change metric to millions
+                    deadline_length_days = as.integer(deadline_length_days), #cast days to integer
+                    category = as.factor(category)) #cast category to factor
+
+#fixing datatypes of the supplier
+awarded <- awarded %>% mutate(value_m = as.numeric(value)/1000000) #change metric to millions
+
+```
+
+At the end of the day, the flattened out awarded dataframe looks as follows:
+
+```{r}
+awarded %>%
+  head(5) %>%
+  kbl() %>%
+  kable_styling("striped") %>%
+  scroll_box(width = "100%")
+
+```
+
+</br>
+
+## DataViz
+
+I decided to plot four charts altogether:
+
+1. Share of categories between different phases of the procurement
+2. Deadline days distribution
+3. Historical movement of project values
+4. Biggest suppliers
+
+### Phase distribution across categories
+
+Majority of the projects across categories are all in the contracting and performance phase,
+and **only around 5% of them are ready for evaluation**.
+
+```{r pressure, echo=FALSE, fig.align='center'}
+
+ggplot(data = df, aes(fill=phase_en, x=category)) + 
+  geom_bar(position='fill') +
+  labs(title = 'Phases by Categories',
+       x = '',
+       y = 'Share') +
+  scale_y_continuous(labels = scales::percent) +
+  scale_fill_viridis_d(name = 'Categories') +
+  theme_bw()+
+  theme(legend.position = "top")
+```
+
+### Distribution of deadline days
+
+Looking at deadline length distribution, I decided to plot a histogram which indicates
+that the shape is right-skewed and the **average due days are around 21 days for each procurement**.
+The shaded rectangle presents deadline values which are the extreme values of the distribution.
+
+```{r, fig.align='center', warning=F}
+
+ggplot(df, aes(deadline_length_days)) +
+  geom_histogram(colour="firebrick4", fill="firebrick1", bins=35) +
+  geom_vline(aes(xintercept=mean(deadline_length_days, na.rm=T)),
+             color="firebrick3", linetype="dashed", size=1, alpha = 0.5) +
+  geom_text(aes(mean(deadline_length_days, na.rm=T), 15, label=paste0("Mean: ",round(mean(deadline_length_days, na.rm=T), 2))), hjust = -0.5) +
+  geom_rect( inherit.aes=FALSE, aes(xmin=50, xmax=max(deadline_length_days, na.rm=T),ymin=0,
+                                    ymax=20),  color="transparent", fill="lightsalmon", alpha=0.02) +
+  labs(title = 'Distribution of deadline length',
+       x = 'Days due',
+       y = 'Frequency') +
+  theme_bw()
+  
+```
+
+### Movement of project values
+
+We can recognize occasional spikes when looking at the change of awarded tender values.
+**The highest spike was around August and September of 2021 moving beyond the value of 1 billion HUF**.
+Furthermore, data points indicate that tenders have been more frequently advertised as we move
+along the time axis. 
+
+```{r, fig.align='center'}
+ggplot(df, aes(date, awarded_value_m, color = "firebrick3"))+
+  geom_line() +
+  geom_point() +
+  labs(title = "Change in Awarded Procurements",
+       x = "Date",
+       y = "Value (in M HUF)") +
+  theme_bw() +
+  theme(legend.position = "none")
+```
+
+### Biggest suppliers on the market
+
+Lastly, I looked at the organizations with the highest totals in terms of tender values.
+**The most successful procurement company was DRYVIT PROFI construction company** with a
+whooping total beyond 1 billion HUF in value.
+
+```{r, fig.align='center'}
+
+awarded %>% 
+  group_by(name) %>%
+  summarise(total=sum(value_m)) %>%
+  arrange(-total) %>% 
+  slice(c(1:5)) %>% 
+     ggplot( aes(reorder(stringr::str_wrap(name, 20), total), total)) +
+        geom_col(colour="firebrick4", fill="firebrick1") +
+        coord_flip() +
+        labs(title = "Top 5 Suppliers",
+             x = "",
+             y = "Value (in M HUF)") +
+        theme_bw()  
+
+```
